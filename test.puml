@@ -1,0 +1,92 @@
+@startuml
+skinparam actorStyle Hollow
+
+actor User #black
+participant "WEB UI" as WebUI
+participant "Campaign GW" as Camp
+participant "Token API" as TokenAPI
+participant "RINumbers" as RINumbers
+participant "RI Application" as RIAPP
+participant "CMA" as CMA
+participant "Voice Cluster" as VC
+participant "Scenario Storage" as SS
+participant "Campaign API" as CampaignAPI
+participant "Action History" as ActionHistory
+
+User -> WebUI : Клик создать голосовую рассылку
+activate WebUI #LightSlateGrey
+
+WebUI -> Camp : Create VoiceMessage\nProps(voice_message_id,from)
+activate Camp #LightSlateGrey
+
+Camp -> TokenAPI : ValidateAPIKey\n(access_token)
+activate TokenAPI #LightSlateGrey
+TokenAPI --> Camp : status = true
+deactivate TokenAPI
+
+Camp -> RIAPP : Get\n (application_uuid)
+activate RIAPP #LightSlateGrey
+RIAPP --> Camp : application_name (возвращаем для статистики в журнале действий)
+deactivate RIAPP
+
+alt
+
+Camp -> VC : Get application list \n(account_sid)
+activate VC #LightSlateGrey
+VC --> Camp : application_sid
+deactivate VC
+
+
+WebUI -> Camp: проверяем есть ли созданное приложение в VC
+else
+WebUI -> Camp: если нет, создаем
+
+Camp -> VC : Create new application
+activate VC #LightSlateGrey
+VC --> Camp : application_sid
+deactivate VC
+
+end
+
+
+Camp -> CMA : GetCustomerState\n (customer_id)
+activate CMA #LightSlateGrey
+CMA --> Camp : активный кастомер
+deactivate CMA
+
+
+Camp -> RINumbers : GetList\n(number_code(исходящий номер),application_uuid)
+activate RINumbers #LightSlateGrey
+RINumbers --> Camp : наличие номера у приложения
+deactivate RINumbers
+
+
+Camp -> SS : Get\n(voice_message_id,application_uuid,scenario_type = VoiceMessage)
+activate SS #LightSlateGrey
+SS --> Camp : наличие сценария у приложения
+deactivate SS
+
+Camp -> Camp : Build Scenario
+
+Camp -> SS : Save
+activate SS #LightSlateGrey
+SS --> Camp : id
+deactivate SS
+
+Camp -> CampaignAPI : Create\n ({scenario_id,number_from})
+activate CampaignAPI #LightSlateGrey
+CampaignAPI --> Camp : campaign_id,status
+deactivate CampaignAPI
+
+Camp -> ActionHistory : AddEntry\n({})
+activate ActionHistory #LightSlateGrey
+ActionHistory --> Camp : success
+deactivate ActionHistory
+
+WebUI <-- Camp : campaign_id,status
+deactivate Camp
+deactivate WebUI
+
+User <-- WebUI : Рассылка создана
+
+@enduml
