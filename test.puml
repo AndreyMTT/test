@@ -1,92 +1,52 @@
 @startuml
-skinparam actorStyle Hollow
 
-actor User #black
-participant "WEB UI" as WebUI
-participant "Campaign GW" as Camp
-participant "Token API" as TokenAPI
-participant "RINumbers" as RINumbers
-participant "RI Application" as RIAPP
-participant "CMA" as CMA
-participant "Voice Cluster" as VC
-participant "Scenario Storage" as SS
-participant "Campaign API" as CampaignAPI
-participant "Action History" as ActionHistory
+entity "Product" {
+  * id : UUID
+  --
+  * name : string
+  * description : text
+  * price : decimal
+  * stock : integer
+  * category_id : UUID
+  * created_at : timestamp
+}
 
-User -> WebUI : Клик создать голосовую рассылку
-activate WebUI #LightSlateGrey
+entity "Category" {
+  * id : UUID
+  --
+  * name : string
+}
 
-WebUI -> Camp : Create VoiceMessage\nProps(voice_message_id,from)
-activate Camp #LightSlateGrey
+entity "User" {
+  * id : UUID
+  --
+  * username : string
+  * password_hash : string
+  * email : string
+  * role : string
+  * created_at : timestamp
+}
 
-Camp -> TokenAPI : ValidateAPIKey\n(access_token)
-activate TokenAPI #LightSlateGrey
-TokenAPI --> Camp : status = true
-deactivate TokenAPI
+entity "Order" {
+  * id : UUID
+  --
+  * user_id : UUID
+  * status : string
+  * created_at : timestamp
+}
 
-Camp -> RIAPP : Get\n (application_uuid)
-activate RIAPP #LightSlateGrey
-RIAPP --> Camp : application_name (возвращаем для статистики в журнале действий)
-deactivate RIAPP
+entity "OrderItem" {
+  * id : UUID
+  --
+  * order_id : UUID
+  * product_id : UUID
+  * quantity : integer
+  * price : decimal
+}
 
-alt
-
-Camp -> VC : Get application list \n(account_sid)
-activate VC #LightSlateGrey
-VC --> Camp : application_sid
-deactivate VC
-
-
-WebUI -> Camp: проверяем есть ли созданное приложение в VC
-else
-WebUI -> Camp: если нет, создаем
-
-Camp -> VC : Create new application
-activate VC #LightSlateGrey
-VC --> Camp : application_sid
-deactivate VC
-
-end
-
-
-Camp -> CMA : GetCustomerState\n (customer_id)
-activate CMA #LightSlateGrey
-CMA --> Camp : активный кастомер
-deactivate CMA
-
-
-Camp -> RINumbers : GetList\n(number_code(исходящий номер),application_uuid)
-activate RINumbers #LightSlateGrey
-RINumbers --> Camp : наличие номера у приложения
-deactivate RINumbers
-
-
-Camp -> SS : Get\n(voice_message_id,application_uuid,scenario_type = VoiceMessage)
-activate SS #LightSlateGrey
-SS --> Camp : наличие сценария у приложения
-deactivate SS
-
-Camp -> Camp : Build Scenario
-
-Camp -> SS : Save
-activate SS #LightSlateGrey
-SS --> Camp : id
-deactivate SS
-
-Camp -> CampaignAPI : Create\n ({scenario_id,number_from})
-activate CampaignAPI #LightSlateGrey
-CampaignAPI --> Camp : campaign_id,status
-deactivate CampaignAPI
-
-Camp -> ActionHistory : AddEntry\n({})
-activate ActionHistory #LightSlateGrey
-ActionHistory --> Camp : success
-deactivate ActionHistory
-
-WebUI <-- Camp : campaign_id,status
-deactivate Camp
-deactivate WebUI
-
-User <-- WebUI : Рассылка создана
+User "1" -- "*" Order : places
+Order "1" -- "*" OrderItem : contains
+OrderItem "*" -- "1" Product : refers to
+Product "*" -- "1" Category : belongs to
 
 @enduml

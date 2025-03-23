@@ -1,0 +1,44 @@
+@startuml
+
+
+actor "Пользователь"
+participant "Web UI" as WebUI
+participant "API" as Backend
+participant "Postgres (DB)" as DB
+participant "Kafka (Message Queue)" as Kafka
+
+Пользователь -> WebUI: Запрос каталога товаров
+WebUI -> Backend: GET /products
+Backend -> DB: SELECT * FROM products
+DB -> Backend: Возвращает список товаров
+Backend -> WebUI: JSON {products}
+WebUI -> Пользователь: Отображает каталог
+
+Пользователь -> WebUI: Добавляет товар в корзину
+WebUI -> Backend: POST /cart {product_id, quantity}
+Backend -> DB: INSERT INTO cart (user_id, product_id, quantity)
+DB -> Backend: OK
+Backend -> WebUI: OK
+
+Пользователь -> WebUI: Оформляет заказ
+WebUI -> Backend: POST /order
+Backend -> DB: Проверка остатков
+alt Товар в наличии
+  Backend -> DB: INSERT INTO orders (user_id, status)
+  Backend -> Kafka: Публикация события "Новый заказ"
+  Kafka -> Backend: Подтверждение
+  Backend -> DB: Обновление остатков товаров
+  Backend -> WebUI: Подтверждение заказа
+  WebUI -> Пользователь: Заказ оформлен
+else Товара нет в наличии
+  Backend -> WebUI: Ошибка, товара нет в наличии
+  WebUI -> Пользователь: Сообщение об ошибке
+end
+
+loop Проверка доставки сообщения в Kafka
+  Backend -> Kafka: Проверка статуса доставки
+  Kafka -> Backend: Подтверждение
+end
+
+@enduml
+
