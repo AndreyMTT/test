@@ -1,0 +1,21 @@
+@startuml
+' План миграций Alembic
+entity "Migration" {
+  * id : UUID
+  --
+  * version : varchar(50)
+  * applied_at : timestamp
+}
+
+entity "Indexing" {
+  * id : UUID
+  --
+  * table_name : varchar(255)
+  * column_name : varchar(255)
+  * index_type : varchar(50)
+  * created_at : timestamp
+}
+
+Migration "*" -- "*" Indexing : defines
+
+@enduml

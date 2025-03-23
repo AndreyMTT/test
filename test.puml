@@ -1,52 +1,69 @@
 @startuml
 
+
+' ERD-схема базы данных
 entity "Product" {
   * id : UUID
   --
-  * name : string
+  * name : varchar(255)
   * description : text
-  * price : decimal
+  * price : numeric(10,2)
   * stock : integer
-  * category_id : UUID
+  * category_id : UUID [FK]
   * created_at : timestamp
 }
 
 entity "Category" {
   * id : UUID
   --
-  * name : string
+  * name : varchar(255)
 }
 
 entity "User" {
   * id : UUID
   --
-  * username : string
-  * password_hash : string
-  * email : string
-  * role : string
+  * username : varchar(255)
+  * password_hash : varchar(255)
+  * email : varchar(255)
+  * role : varchar(50) [FK]
   * created_at : timestamp
 }
 
 entity "Order" {
   * id : UUID
   --
-  * user_id : UUID
-  * status : string
+  * user_id : UUID [FK]
+  * status_id : UUID [FK]
   * created_at : timestamp
 }
 
 entity "OrderItem" {
   * id : UUID
   --
-  * order_id : UUID
-  * product_id : UUID
+  * order_id : UUID [FK]
+  * product_id : UUID [FK]
   * quantity : integer
-  * price : decimal
+  * price : numeric(10,2)
+}
+
+entity "OrderStatus" {
+  * id : UUID
+  --
+  * name : varchar(50)
+}
+
+entity "UserRole" {
+  * id : UUID
+  --
+  * name : varchar(50)
 }
 
 User "1" -- "*" Order : places
 Order "1" -- "*" OrderItem : contains
 OrderItem "*" -- "1" Product : refers to
 Product "*" -- "1" Category : belongs to
+Order "*" -- "1" OrderStatus : has
+User "*" -- "1" UserRole : has
+
 
 @enduml
